@@ -14,26 +14,13 @@ namespace PipBoy
 
     class Program
     {
-        static ManualResetEvent _exitMutex = new ManualResetEvent(false);
+        private static ManualResetEvent _exitMutex = new ManualResetEvent(false);
+        private static Dictionary<uint, string> _codebook;
 
-        static byte[] PauseCommand = "00 0f 00 00 00 01".ToByteArray();
-        static byte[] UnpauseCommand = "00 0f 00 00 00 00".ToByteArray();
-
-        enum SimpleCommand
-        {
-            Unknown,
-            Pause,
-            Unpause,
-            Direction,
-            Movement,
-            Time
-        }
-
-        static Dictionary<byte[], SimpleCommand> CommandMap = new Dictionary<byte[], SimpleCommand>
-            {
-                { PauseCommand, SimpleCommand.Pause },
-                { UnpauseCommand, SimpleCommand.Unpause },
-            };
+        private static bool _dumpInitialPacketParsing = true;
+        private static bool _dumpInitialPacketContent = true;
+        private static bool _dumpPacketParsing = true;
+        private static PacketParser _packetParser;
 
         static void Main(string[] args)
         {
@@ -78,6 +65,24 @@ namespace PipBoy
             }
         }
 
+        private static void ProcessInitialPacket(byte[] metaPacket, byte[] dataPacket)
+        {
+            var data = new PacketParser(_dumpInitialPacketParsing ? Console.Out : null).Process(dataPacket);
+
+            _codebook = BuildCodebook(data);
+            _packetParser = new PacketParser(_codebook, _dumpPacketParsing ? Console.Out : null);
+
+            if (_dumpInitialPacketContent)
+            {
+                DumpInitialPacket(data);
+            }
+        }
+
+        static void ProcessPacket(byte[] metaPacket, byte[] dataPacket)
+        {
+            _packetParser.Process(dataPacket);
+        }
+
         private static Dictionary<uint, string> BuildCodebook(Dictionary<uint, DataElement> data)
         {
             var codebook = new Dictionary<uint, string>();
@@ -119,13 +124,8 @@ namespace PipBoy
             }
         }
 
-        private static void ProcessInitialPacket(byte[] metaPacket, byte[] dataPacket)
+        private static void DumpInitialPacket(Dictionary<uint, DataElement> data)
         {
-            var data = ParsePacket(dataPacket);
-
-            _codebook = BuildCodebook(data);
-            var name = _codebook[36514];
-
             var objectsByCategory = new Dictionary<string, List<Dictionary<string, DataElement>>>();
 
             var categories = ((MapElement)data[0]).Value;
@@ -226,36 +226,6 @@ namespace PipBoy
             PrintAttributeMap(status);
         }
 
-        static void ProcessPacket(byte[] metaPacket, byte[] dataPacket)
-        {
-            //var command = GetPacketCommand(dataPacket);
-            var parsedPacket = ParsePacket(dataPacket);
-
-            //DumpPacket(dataPacket);
-
-            //if (command == SimpleCommand.Unknown)
-            //{
-            //    Console.Write("? ");
-            //    DumpPacket(dataPacket);
-            //}
-            //else if (command == SimpleCommand.Direction)
-            //{
-            //    PrintDirectionPacket(dataPacket);
-            //}
-            //else if (command == SimpleCommand.Time)
-            //{
-            //    PrintTimePacket(dataPacket);
-            //}
-            //else if (command == SimpleCommand.Movement)
-            //{
-            //    PrintMovementPacket(dataPacket);
-            //}
-            //else
-            //{
-            //    Console.WriteLine(command.ToString());
-            //}
-        }
-
         private static Dictionary<string, DataElement> ReadListOfAttributes(Dictionary<uint, DataElement> data, uint itemIndex)
         {
             // reads index -> map<AttributeName, AttributeValueIndex>
@@ -280,18 +250,6 @@ namespace PipBoy
             return result;
         }
 
-        //private static Dictionary<string, List<Dictionary<string, DataElement>>> ReadMapOfAttributeMaps(Dictionary<uint, DataElement> data, uint itemIndex)
-        //{
-        //    // reads index -> map<AttributeMapIndex, CategoryName> -> map<AttributeName, AttributeValueIndex>
-        //    var result = new Dictionary<string, List<Dictionary<string, DataElement>>>();
-        //    var categories = ((MapElement)data[itemIndex]).Value;
-        //    foreach (var category in categories)
-        //    {
-        //        result.Add(category.Value, ReadListOfAttributeMaps(data, category.Key));
-        //    }
-        //    return result;
-        //}
-
         private static void PrintAttributeMap(Dictionary<string, DataElement> attributeMap)
         {
             foreach (var attribute in attributeMap)
@@ -307,234 +265,6 @@ namespace PipBoy
             {
                 PrintAttributeMap(attributeMap);
             }
-        }
-
-        //private static void PrintAttributeCategorizedMaps(Dictionary<string, List<Dictionary<string, DataElement>>> categorizedMap)
-        //{
-        //    foreach (var attributeMaps in categorizedMap)
-        //    {
-        //        Console.WriteLine(attributeMaps.Key);
-        //        Console.WriteLine(new string('=', attributeMaps.Key.Length));
-        //        Console.WriteLine();
-
-        //        PrintAttributeMaps(attributeMaps.Value);
-        //    }
-        //}
-
-        private static Dictionary<uint, DataElement> ParsePacket(byte[] dataPacket)
-        {
-            var result = new Dictionary<uint, DataElement>();
-            var reader = new BinaryReader(new MemoryStream(dataPacket), Encoding.ASCII);
-            while (reader.PeekChar() != -1)
-            {
-                var type = reader.ReadByte();
-                var id = reader.ReadUInt32();
-                Console.Write("[{0}", id);
-                if(_codebook != null)
-                {
-                    string name = "<unknown>";
-                    _codebook.TryGetValue(id, out name);
-                    Console.Write(" - {0}", name);
-                }
-                Console.Write("] ");
-                switch (type)
-                {
-                    case 0x00:
-                        bool boolean = (reader.ReadByte() != 0);
-                        Console.WriteLine("bool: " + boolean);
-                        result.Add(id, new BoolElement(boolean));
-                        break;
-                    case 0x01:  // int8 and uint8 might be switched
-                        byte uint8 = reader.ReadByte();
-                        Console.WriteLine("uint8: " + uint8);
-                        result.Add(id, new UInt8Element(uint8));
-                        break;
-                    case 0x02:
-                        sbyte int8 = reader.ReadSByte();
-                        Console.WriteLine("sint8: " + int8);
-                        result.Add(id, new Int8Element(int8));
-                        break;
-                    case 0x03:
-                        var int32 = reader.ReadInt32();
-                        Console.WriteLine("sint32: " + int32);
-                        result.Add(id, new Int32Element(int32));
-                        break;
-                    case 0x04:
-                        var uint32 = reader.ReadUInt32();
-                        Console.WriteLine("uint32: " + uint32);
-                        result.Add(id, new UInt32Element(uint32));
-                        break;
-                    case 0x05:
-                        var single = reader.ReadSingle();
-                        Console.WriteLine("float: " + single);
-                        result.Add(id, new FloatElement(single));
-                        break;
-                    case 0x06:
-                        var str = reader.ReadCString();
-                        Console.WriteLine("String: " + str);
-                        result.Add(id, new StringElement(str));
-                        break;
-                    case 0x07:
-                        var listCount = reader.ReadUInt16();
-                        var list = new List<UInt32>();
-                        Console.WriteLine("list of " + listCount);
-                        for (var i = 0; i < listCount; i++)
-                        {
-                            var listValue = reader.ReadUInt32();
-                            list.Add(listValue);
-                            Console.WriteLine("\t" + listValue);
-                        }
-                        result.Add(id, new ListElement(list));
-                        break;
-                    case 0x08:
-                        var mapCount = reader.ReadUInt16();
-                        var map = new Dictionary<UInt32, string>();
-                        Console.WriteLine("map of " + mapCount);
-                        for (var i = 0; i < mapCount; i++)
-                        {
-                            var mapId = reader.ReadUInt32();
-                            var mapValue = reader.ReadCString();
-                            map.Add(mapId, mapValue);
-                            Console.WriteLine("\t" + mapId + " = " + mapValue);
-                        }
-                        var zeroTerminator = reader.ReadBytes(2);
-                        Debug.Assert(zeroTerminator[0] == 0 && zeroTerminator[1] == 0);
-                        result.Add(id, new MapElement(map));
-                        break;
-                    default:
-                        Debugger.Break();
-                        break;
-                }
-            }
-            return result;
-        }
-
-        class Position
-        {
-            public float X;
-            public float Y;
-        }
-
-        static Position _lastPosition;
-        private static Dictionary<uint, string> _codebook;
-
-        private static void PrintMovementPacket(byte[] dataPacket)
-        {
-            if (dataPacket.Length % 9 != 0)
-            {
-                Console.WriteLine("unknown movement packet");
-                DumpPacket(dataPacket);
-                return;
-            }
-
-            Console.Write("Position: ");
-            //for (int i = 0; i < dataPacket.Length; i += 9)
-            //{
-            //    var value = BitConverter.ToSingle(dataPacket, i + 5);
-            //    Console.Write("[{0:X2}] {1}, ", dataPacket[i + 1], value);
-            //}
-
-            var p = new Position();
-
-            for (int i = 0; i < dataPacket.Length; i += 9)
-            {
-                var tag = dataPacket[i + 1];
-                if (tag == 0x94 || tag == 0x98)
-                {
-                    p.X = BitConverter.ToSingle(dataPacket, i + 5);
-                }
-                else if (tag == 0x95 || tag == 0x99)
-                {
-                    p.Y = BitConverter.ToSingle(dataPacket, i + 5);
-                }
-            }
-
-            if (p.X == 0f || p.Y == 0f)
-            {
-                if (_lastPosition != null)
-                {
-                    if (p.X == 0f)
-                    {
-                        p.X = _lastPosition.X;
-                    }
-
-                    if (p.Y == 0f)
-                    {
-                        p.Y = _lastPosition.Y;
-                    }
-                }
-            }
-            _lastPosition = p;
-            Console.WriteLine("X: {0}, Y: {1}", p.X, p.Y);
-        }
-
-        private static void DumpPacket(byte[] dataPacket)
-        {
-            Console.WriteLine("[{0}]: {1}", dataPacket.Length, dataPacket.ToHexString());
-        }
-
-        private static void PrintTimePacket(byte[] dataPacket)
-        {
-            if (dataPacket.Length != 9)
-            {
-                Console.WriteLine("unknown time packet: ");
-                DumpPacket(dataPacket);
-                return;
-            }
-
-            var value = BitConverter.ToSingle(dataPacket, 5);
-            var hours = (int)value;
-            var minutes = (int)(60 * value - 60 * hours);
-            Console.WriteLine("Time: {0}:{1:D2}", hours, minutes);
-        }
-
-        private static void PrintDirectionPacket(byte[] dataPacket)
-        {
-            if (dataPacket.Length % 9 != 0)
-            {
-                Console.WriteLine("unknown direction packet");
-                DumpPacket(dataPacket);
-                return;
-            }
-
-            Console.Write("Angle: ");
-            for (int i = 0; i < dataPacket.Length; i += 9)
-            {
-                var value = BitConverter.ToSingle(dataPacket, i + 5);
-                Console.Write(value);
-            }
-            Console.WriteLine();
-        }
-
-        static SimpleCommand GetPacketCommand(byte[] packet)
-        {
-            SimpleCommand command;
-            if (CommandMap.TryGetValue(packet, out command))
-            {
-                return command;
-            }
-
-            if (packet.Length < 2)
-            {
-                return SimpleCommand.Unknown;
-            }
-
-            if (packet[1] == 0x9a)
-            {
-                return SimpleCommand.Direction;
-            }
-
-            if (packet[1] == 0x94 || packet[1] == 0x95 || packet[1] == 0x98 || packet[1] == 0x99)
-            {
-                return SimpleCommand.Movement;
-            }
-
-            if (packet[0] == 0x05 && packet[1] == 0x52 && packet[2] == 0x7a)    // packet[1] == 0x52 is not unique
-            {
-                return SimpleCommand.Time;
-            }
-
-            return SimpleCommand.Unknown;
         }
 
         static void SendThread(object streamObj)
@@ -562,21 +292,12 @@ namespace PipBoy
             }
         }
     }
+
     public static class Extensions
     {
-        public static byte[] ToByteArray(this string hexString)
-        {
-            return hexString.Split(' ').Select(b => byte.Parse(b, System.Globalization.NumberStyles.HexNumber)).ToArray();
-        }
-
         public static string ToHexString(this byte[] data, string delimiter = " ")
         {
             return data.Aggregate(new StringBuilder(), (a, b) => a.Append(delimiter).Append(b.ToString("X2"))).ToString().Substring(delimiter.Length);
-        }
-
-        public static bool MatchHex(this byte[] data, string hexString)
-        {
-            return data.SequenceEqual(hexString.ToByteArray());
         }
 
         public static string ReadCString(this BinaryReader reader)
