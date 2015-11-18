@@ -53,6 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CopyInputStream.cs" />
     <Compile Include="DataMap.cs" />
     <Compile Include="DataObject.cs" />
     <Compile Include="DebugSettings.cs" />

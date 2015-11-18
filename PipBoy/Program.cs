@@ -22,19 +22,21 @@ namespace PipBoy
                 using (var tcpClient = new TcpClient())
                 {
                     tcpClient.Connect(DebugSettings.Host, DebugSettings.Port);
-                    var stream = tcpClient.GetStream();
-                    ReadStream(stream, true);
+                    Stream stream = tcpClient.GetStream();
+                    if (DebugSettings.DumpTcpStream)
+                    {
+                        stream = new CopyInputStream(stream, new FileStream(DebugSettings.TcpDumpFile, FileMode.Create), true);
+                    }
+
+                    using (stream)
+                    {
+                        ReadStream(stream, true);
+                    }
                 }
             }
             else
             {
-                var initialPacket = File.ReadAllBytes("Mess0.bin");
-                var sizePacket = BitConverter.GetBytes(initialPacket.Length);
-                var data = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00 }  // headerMetaPacket
-                    .Concat(new byte[] { 0x00 })                        // headerPacket
-                    .Concat(sizePacket).Concat(new byte[1])             // metaPacket of initialPacket
-                    .Concat(initialPacket).ToArray();
-
+                var data = File.ReadAllBytes(DebugSettings.InputFile);
                 using (var ms = new MemoryStream(data))
                 {
                     ReadStream(ms, false);
@@ -317,7 +319,7 @@ namespace PipBoy
 
         static void SendThread(object streamObj)
         {
-            var stream = (NetworkStream)streamObj;
+            var stream = (Stream)streamObj;
 
             Thread.Sleep(1000);
 
