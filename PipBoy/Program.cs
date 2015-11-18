@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace PipBoy
 {
@@ -14,65 +11,93 @@ namespace PipBoy
 
     class Program
     {
-        private static ManualResetEvent _exitMutex = new ManualResetEvent(false);
+        private static readonly ManualResetEvent ExitMutex = new ManualResetEvent(false);
         private static Dictionary<uint, string> _codebook;
-
-        private static bool _dumpInitialPacketParsing = true;
-        private static bool _dumpInitialPacketContent = true;
-        private static bool _dumpPacketParsing = true;
         private static PacketParser _packetParser;
 
         static void Main(string[] args)
         {
-            using (var tcpClient = new TcpClient())
+            if (DebugSettings.UseTcp)
             {
-                tcpClient.Connect("192.168.0.133", 27000);
-                Console.WriteLine("connected");
-                var stream = tcpClient.GetStream();
-                var reader = new BinaryReader(stream);
+                using (var tcpClient = new TcpClient())
+                {
+                    tcpClient.Connect(DebugSettings.Host, DebugSettings.Port);
+                    var stream = tcpClient.GetStream();
+                    ReadStream(stream, true);
+                }
+            }
+            else
+            {
+                var initialPacket = File.ReadAllBytes("Mess0.bin");
+                var sizePacket = BitConverter.GetBytes(initialPacket.Length);
+                var data = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00 }  // headerMetaPacket
+                    .Concat(new byte[] { 0x00 })                        // headerPacket
+                    .Concat(sizePacket).Concat(new byte[1])             // metaPacket of initialPacket
+                    .Concat(initialPacket).ToArray();
 
-                // read header
-                var headerMetaPacket = reader.ReadBytes(5);
-                var headerPacket = reader.ReadBytes(headerMetaPacket[0]);   // ~35 bytes
+                using (var ms = new MemoryStream(data))
+                {
+                    ReadStream(ms, false);
+                }
+            }
+        }
 
-                // start keepalive
+        private static void ReadStream(Stream stream, bool keepAlive)
+        {
+            var reader = new BinaryReader(stream);
+
+            // read header
+            var headerMetaPacket = reader.ReadBytes(5);
+            var headerPacket = reader.ReadBytes(headerMetaPacket[0]); // ~35 bytes
+
+            if (keepAlive)
+            {
                 var sendThread = new Thread(SendThread);
                 sendThread.IsBackground = true;
                 sendThread.Start(stream);
+            }
 
-                // read data
-                bool first = true;
-                while (!Console.KeyAvailable)
+            // read data
+            bool first = true;
+            while (!Console.KeyAvailable)
+            {
+                var metaPacket = reader.ReadBytes(5);
+                if (metaPacket.Length < 5)
                 {
-                    var metaPacket = reader.ReadBytes(5);
+                    break;
+                }
 
-                    if (metaPacket[0] != 0)
+                if (metaPacket[0] != 0)
+                {
+                    var size = BitConverter.ToInt32(metaPacket, 0);
+                    var dataPacket = reader.ReadBytes(size);
+                    if (first)
                     {
-                        var size = BitConverter.ToInt32(metaPacket, 0);
-                        var dataPacket = reader.ReadBytes(size);
-                        if (first)
-                        {
-                            ProcessInitialPacket(metaPacket, dataPacket);
-                            first = false;
-                        }
-                        else
-                        {
-                            ProcessPacket(metaPacket, dataPacket);
-                        }
+                        ProcessInitialPacket(metaPacket, dataPacket);
+                        first = false;
+                    }
+                    else
+                    {
+                        ProcessPacket(metaPacket, dataPacket);
                     }
                 }
-                _exitMutex.Set();
             }
+            ExitMutex.Set();
         }
 
         private static void ProcessInitialPacket(byte[] metaPacket, byte[] dataPacket)
         {
-            var data = new PacketParser(_dumpInitialPacketParsing ? Console.Out : null).Process(dataPacket);
-
+            var data = new PacketParser().Process(dataPacket);
             _codebook = BuildCodebook(data);
-            _packetParser = new PacketParser(_codebook, _dumpPacketParsing ? Console.Out : null);
 
-            if (_dumpInitialPacketContent)
+            if (DebugSettings.DumpInitialPacketParsing)
+            {
+                new PacketParser(_codebook, Console.Out).Process(dataPacket);
+            }
+
+            _packetParser = new PacketParser(_codebook, DebugSettings.DumpPacketParsing ? Console.Out : null);
+
+            if (DebugSettings.DumpInitialPacketContent)
             {
                 DumpInitialPacket(data);
             }
@@ -86,11 +111,11 @@ namespace PipBoy
         private static Dictionary<uint, string> BuildCodebook(Dictionary<uint, DataElement> data)
         {
             var codebook = new Dictionary<uint, string>();
-            BuildCodebook(data, 0, "", ref codebook);
+            BuildCodebook(data, 0, "", codebook);
             return codebook;
         }
 
-        private static void BuildCodebook(Dictionary<uint, DataElement> data, uint index, string prefix, ref Dictionary<uint, string> codebook)
+        private static void BuildCodebook(Dictionary<uint, DataElement> data, uint index, string prefix, Dictionary<uint, string> codebook)
         {
             var map = ((MapElement)data[index]).Value;
 
@@ -107,7 +132,7 @@ namespace PipBoy
                 var element = data[item.Key];
                 if (element is MapElement)
                 {
-                    BuildCodebook(data, item.Key, name, ref codebook);
+                    BuildCodebook(data, item.Key, name, codebook);
                 }
                 else if (element is ListElement)
                 {
@@ -117,7 +142,7 @@ namespace PipBoy
                     {
                         foreach (var subElement in list)
                         {
-                            BuildCodebook(data, subElement, name, ref codebook);
+                            BuildCodebook(data, subElement, name, codebook);
                         }
                     }
                 }
@@ -126,104 +151,127 @@ namespace PipBoy
 
         private static void DumpInitialPacket(Dictionary<uint, DataElement> data)
         {
-            var objectsByCategory = new Dictionary<string, List<Dictionary<string, DataElement>>>();
+            var dataMap = new DataMap(data);
 
-            var categories = ((MapElement)data[0]).Value;
+            uint index;
+            if (dataMap.TryGetIndex(DataCategory.Radio, out index))
+            {
+                var radioStations = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(radioStations);
+            }
 
-            var radioIndex = categories.First(c => c.Value == "Radio").Key;
-            var radioStations = ReadListOfAttributeMaps(data, radioIndex);
-            PrintAttributeMaps(radioStations);
+            if (dataMap.TryGetIndex(DataCategory.Perks, out index))
+            {
+                var perks = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(perks);
+            }
 
-            var perksIndex = categories.First(c => c.Value == "Perks").Key;
-            var perks = ReadListOfAttributeMaps(data, perksIndex);
-            PrintAttributeMaps(perks);
+            if (dataMap.TryGetIndex(DataCategory.Stats, out index))
+            {
+                var stats = ReadListOfAttributes(data, index);
+                PrintAttributeMap(stats);
+            }
 
-            var statsIndex = categories.First(c => c.Value == "Stats").Key;
-            var stats = ReadListOfAttributes(data, statsIndex);
-            PrintAttributeMap(stats);
+            if (dataMap.TryGetIndex(DataCategory.Special, out index))
+            {
+                var special = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(special);
+            }
 
-            var specialIndex = categories.First(c => c.Value == "Special").Key;
-            var special = ReadListOfAttributeMaps(data, specialIndex);
-            PrintAttributeMaps(special);
+            if (dataMap.TryGetIndex(DataCategory.Quests, out index))
+            {
+                var quests = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(quests);
+            }
 
-            // Inventory
-            var inventoryIndex = categories.First(c => c.Value == "Inventory").Key;
+            if (dataMap.TryGetIndex(DataCategory.Workshop, out index))
+            {
+                var workshops = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(workshops);
+            }
 
-            var inventory = ((MapElement)data[inventoryIndex]).Value;
-            // 47 -> list<attributeMapIndex> (e.g. Federal Ration Stockpile Password)
-            // HolotapePlaying -> bool
-            // 44 -> list<attributeMapIndex> (e.g. .38 Round)
-            // UnderwearType -> int32 (e.g. 1)
-            // stimpakObjectIDIsValid -> bool
-            // InvComponents -> list<attributeMapIndex> (e.g. Silver)
-            // 43 -> list<attributeMapIndex> (e.g. Nuka Grenade)
-            // 30 -> list<attributeMapIndex> (e.g. Grognak the Barbarian)
-            // stimpakObjectID -> sint (e.g. 24601)
-            // radawayObjectID -> sint (e.g. 25442)
-            // 50 -> list<attributeMapIndex> (e.g. Atomic Command)
-            // 48 -> list<attributeMapIndex> (e.g. Stimpack)
-            // 35 -> list<attributeMapIndex> (e.g. Bobby Pin)
-            // SortMode -> uint32 (e.g. 0)
-            // Version -> sint32 (e.g. 16)
-            // stimpakObjectIDIsValid -> bool
-            // 29 -> list<attributeMapIndex> (e.g. Wedding Ring)
-            // sortedIDS -> list<Index> -> sint32 -> attributeMap (e.g. .308 Round)
+            if (dataMap.TryGetIndex(DataCategory.Log, out index))
+            {
+                var log = ReadListOfAttributeMaps(data, index);
+                PrintAttributeMaps(log);
+            }
 
-            // 48 = aid
-            var aid = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "48").Key);
-            PrintAttributeMaps(aid);
+            if (dataMap.TryGetIndex(DataCategory.Map, out index))
+            {
+                var map = ReadListOfAttributes(data, index);
+                PrintAttributeMap(map);
+            }
 
-            // 50 = misc: recordings/holotapes
-            var tapes = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "50").Key);
-            PrintAttributeMaps(tapes);
+            if (dataMap.TryGetIndex(DataCategory.PlayerInfo, out index))
+            {
+                var playerInfo = ReadListOfAttributes(data, index);
+                PrintAttributeMap(playerInfo);
+            }
 
-            // 43 = aid
-            var weapons = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "43").Key);
-            PrintAttributeMaps(weapons);
+            if (dataMap.TryGetIndex(DataCategory.Status, out index))
+            {
+                var status = ReadListOfAttributes(data, index);
+                PrintAttributeMap(status);
+            }
 
-            // 30 = misc: books/letters
-            var books = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "30").Key);
-            PrintAttributeMaps(books);
+            if (dataMap.TryGetIndex(DataCategory.Inventory, out index))
+            {
+                var inventoryMap = new InventoryMap(data, index);
 
-            // 35 = junk
-            var junk = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "35").Key);
-            PrintAttributeMaps(junk);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Aid, out index))
+                {
+                    var aid = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(aid);
+                }
 
-            // 29 = apparel
-            var apparel = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "29").Key);
-            PrintAttributeMaps(apparel);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Recordings, out index))
+                {
+                    var recordings = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(recordings);
+                }
 
-            // 47 = misc: keys/passwords
-            var keys = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "47").Key);
-            PrintAttributeMaps(keys);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Weapons, out index))
+                {
+                    var weapons = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(weapons);
+                }
 
-            // 44 = ammo
-            var ammo = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "44").Key);
-            PrintAttributeMaps(ammo);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Writings, out index))
+                {
+                    var books = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(books);
+                }
 
-            // components
-            var components = ReadListOfAttributeMaps(data, inventory.First(i => i.Value == "InvComponents").Key);
-            PrintAttributeMaps(components);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Junk, out index))
+                {
+                    var junk = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(junk);
+                }
 
-            // --
+                if (inventoryMap.TryGetIndex(InventoryCategory.Apparel, out index))
+                {
+                    var apparel = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(apparel);
+                }
 
-            var quests = ReadListOfAttributeMaps(data, categories.First(c => c.Value == "Quests").Key);
-            PrintAttributeMaps(quests);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Keys, out index))
+                {
+                    var keys = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(keys);
+                }
 
-            var workshops = ReadListOfAttributeMaps(data, categories.First(c => c.Value == "Workshop").Key);
-            PrintAttributeMaps(workshops);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Ammo, out index))
+                {
+                    var ammo = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(ammo);
+                }
 
-            var log = ReadListOfAttributeMaps(data, categories.First(c => c.Value == "Log").Key);
-            PrintAttributeMaps(log);
-
-            var map = ReadListOfAttributes(data, categories.First(c => c.Value == "Map").Key);
-            PrintAttributeMap(map);
-
-            var playerInfo = ReadListOfAttributes(data, categories.First(c => c.Value == "PlayerInfo").Key);
-            PrintAttributeMap(playerInfo);
-
-            var status = ReadListOfAttributes(data, categories.First(c => c.Value == "Status").Key);
-            PrintAttributeMap(status);
+                if (inventoryMap.TryGetIndex(InventoryCategory.Components, out index))
+                {
+                    var components = ReadListOfAttributeMaps(data, index);
+                    PrintAttributeMaps(components);
+                }
+            }
         }
 
         private static Dictionary<string, DataElement> ReadListOfAttributes(Dictionary<uint, DataElement> data, uint itemIndex)
@@ -285,30 +333,11 @@ namespace PipBoy
                     Console.WriteLine("Keepalive thread exception: " + e.Message);
                     return;
                 }
-                if (_exitMutex.WaitOne(1000))
+                if (ExitMutex.WaitOne(1000))
                 {
                     return;
                 }
             }
-        }
-    }
-
-    public static class Extensions
-    {
-        public static string ToHexString(this byte[] data, string delimiter = " ")
-        {
-            return data.Aggregate(new StringBuilder(), (a, b) => a.Append(delimiter).Append(b.ToString("X2"))).ToString().Substring(delimiter.Length);
-        }
-
-        public static string ReadCString(this BinaryReader reader)
-        {
-            var sb = new StringBuilder();
-            byte b;
-            while ((b = reader.ReadByte()) != 0)
-            {
-                sb.Append((char)b);
-            }
-            return sb.ToString();
         }
     }
 }

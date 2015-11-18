@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace PipBoy
 {
-    class PacketParser
+    public class PacketParser
     {
         private readonly Dictionary<uint, string> _codebook;
 
@@ -16,7 +14,7 @@ namespace PipBoy
 
         public PacketParser(TextWriter logger = null)
         {
-            _logger = logger != null ? logger : new StreamWriter(Stream.Null);
+            _logger = logger ?? new StreamWriter(Stream.Null);
         }
 
         public PacketParser(Dictionary<uint, string> codebook, TextWriter logger = null)
@@ -111,6 +109,20 @@ namespace PipBoy
                 }
             }
             return result;
+        }
+    }
+
+    public static class BinaryReaderExtensions
+    {
+        public static string ReadCString(this BinaryReader reader)
+        {
+            var sb = new StringBuilder();
+            byte b;
+            while ((b = reader.ReadByte()) != 0)
+            {
+                sb.Append((char)b);
+            }
+            return sb.ToString();
         }
     }
 }

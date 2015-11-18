@@ -53,7 +53,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataMap.cs" />
     <Compile Include="DataObject.cs" />
+    <Compile Include="DebugSettings.cs" />
+    <Compile Include="InventoryMap.cs" />
     <Compile Include="PacketParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
