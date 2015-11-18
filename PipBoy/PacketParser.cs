@@ -99,9 +99,22 @@ namespace PipBoy
                             map.Add(mapId, mapValue);
                             _logger.WriteLine("\t" + mapId + " = " + mapValue);
                         }
-                        var zeroTerminator = reader.ReadBytes(2);
-                        Debug.Assert(zeroTerminator[0] == 0 && zeroTerminator[1] == 0);
-                        result.Add(id, new MapElement(map));
+
+                        // TODO: figure out if MapElement is an uint->string map with extra values or an uint->(string, value) map
+                        var appendixCount = reader.ReadUInt16();
+                        var extraValues = new uint[appendixCount];
+                        for (int i = 0; i < appendixCount; i++)
+                        {
+                            var someId = reader.ReadUInt32();
+                            string name = null;
+                            if (_codebook != null)
+                            {
+                                _codebook.TryGetValue(someId, out name);
+                            }
+                            _logger.WriteLine("\t\textraValue: {0}, {1}", someId, name ?? "<unknown>");
+                        }
+
+                        result.Add(id, new MapElement(map, extraValues));
                         break;
                     default:
                         Debugger.Break();

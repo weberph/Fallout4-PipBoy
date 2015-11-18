@@ -119,9 +119,12 @@ namespace PipBoy
 
     public class MapElement : DataElement<Dictionary<UInt32, string>>
     {
-        public MapElement(Dictionary<UInt32, string> value)
+        private readonly uint[] _extraValues;       // TODO: not sure yet what these extraValues are and if the type arg of DataElement<T> should contain them
+
+        public MapElement(Dictionary<UInt32, string> value, uint[] extraValues)
             : base(ElementType.Map, value)
         {
+            _extraValues = extraValues;
         }
 
         public override string ToString()
