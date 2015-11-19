@@ -1,5 +1,5 @@
 # Fallout4-PipBoy
-Use TCP communication mechanism from PipBoy Android/iOS app with .NET
+Library to use the TCP communication mechanism/protocol from PipBoy Android/iOS app with .NET
 
 ### Update 20.11.2015
 The game state can be tracked with the `GameStateReader` class and accessed via a dynamic object:
@@ -11,8 +11,11 @@ while (gameStateReader.NextState())
     Console.WriteLine("Player X position: " + (float)gameStateReader.GameState.Map.World.Player.X);
 }
 ```
+See [PipBoyTest/Program.cs](PipBoyTest/Program.cs) for an example.
 
-### Current state
+---
+
+#### Current state (15.11.2015)
 
 - parsing and dumping of tcp communication works
 
@@ -21,7 +24,7 @@ the inventory, components, radio stations, perks, stats, special attributes, que
 
 - Other packets like movement, direction change or change of time are also dumped
 
-#### Sample output:
+##### Sample output:
 
 excerpt from the initial received packet:
 ```
