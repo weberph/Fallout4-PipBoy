@@ -92,8 +92,13 @@ namespace PipBoy
                 if (first)
                 {
                     _gameStateManager = new GameStateManager(data);
-                    var x = (float)_gameStateManager.GameState.Map.World.Player.X;
                 }
+                else
+                {
+                    _gameStateManager.Update(data);
+                }
+                var x = (float)_gameStateManager.GameState.Map.World.Player.X;
+                Console.WriteLine("Player X position: " + x);
 
                 if ((first && DebugSettings.DumpInitialPacketParsing) || (!first && DebugSettings.DumpPacketParsing))
                 {
@@ -103,9 +108,8 @@ namespace PipBoy
                         InitialPacketDumper.DumpInitialPacket(data);
                     }
                     Console.WriteLine("==================================================");
-                    first = false;
                 }
-
+                first = false;
             }
             ExitMutex.Set();
         }
