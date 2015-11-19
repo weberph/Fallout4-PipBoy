@@ -53,10 +53,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Codebook.cs" />
     <Compile Include="CopyInputStream.cs" />
     <Compile Include="DataMap.cs" />
     <Compile Include="DataObject.cs" />
     <Compile Include="DebugSettings.cs" />
+    <Compile Include="GameObject.cs" />
+    <Compile Include="GameStateManager.cs" />
+    <Compile Include="InitialPacketDumper.cs" />
     <Compile Include="InventoryMap.cs" />
     <Compile Include="PacketParser.cs" />
     <Compile Include="Program.cs" />
