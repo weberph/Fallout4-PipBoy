@@ -3,18 +3,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using PipBoy;
 
-namespace PipBoy
+namespace PipBoyTest
 {
     // uses Install-Package Microsoft.CodeDom.Providers.DotNetCompilerPlatform
 
     class Program
     {
         private static readonly ManualResetEvent ExitMutex = new ManualResetEvent(false);
-        private static Codebook _codebook;
-        private static PacketParser _packetParser;
-        private static GameStateManager _gameStateManager;
-
+        
         static void Main(string[] args)
         {
             if (DebugSettings.UseTcp)

@@ -7,7 +7,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{F0EA6795-5745-4A30-BCC7-98F8DAD7C0B5}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipBoy</RootNamespace>
     <AssemblyName>PipBoy</AssemblyName>
@@ -38,6 +38,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.1\lib\net45\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll</HintPath>
@@ -53,18 +56,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Codebook.cs" />
-    <Compile Include="CopyInputStream.cs" />
+    <Compile Include="Debugging\Codebook.cs" />
     <Compile Include="DataMap.cs" />
     <Compile Include="DataObject.cs" />
-    <Compile Include="DebugSettings.cs" />
+    <Compile Include="Debugging\InitialPacketDumper.cs" />
     <Compile Include="GameObject.cs" />
     <Compile Include="GameStateManager.cs" />
     <Compile Include="GameStateReader.cs" />
-    <Compile Include="InitialPacketDumper.cs" />
     <Compile Include="InventoryMap.cs" />
     <Compile Include="PacketParser.cs" />
-    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

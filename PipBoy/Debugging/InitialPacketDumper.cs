@@ -1,14 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.IO;
 
-namespace PipBoy
+namespace PipBoy.Debugging
 {
-    public static class InitialPacketDumper
+    public class InitialPacketDumper
     {
-        public static void DumpInitialPacket(Dictionary<uint, DataElement> data)
+        private readonly TextWriter _writer;
+
+        public InitialPacketDumper(TextWriter writer)
+        {
+            _writer = writer;
+        }
+        public static void DumpInitialPacket(Dictionary<uint, DataElement> data, TextWriter writer)
+        {
+            new InitialPacketDumper(writer).DumpInitialPacket(data);
+        }
+
+        public void DumpInitialPacket(Dictionary<uint, DataElement> data)
         {
             var dataMap = new DataMap(data);
 
@@ -133,7 +141,7 @@ namespace PipBoy
             }
         }
 
-        private static Dictionary<string, DataElement> ReadListOfAttributes(Dictionary<uint, DataElement> data, uint itemIndex)
+        private Dictionary<string, DataElement> ReadListOfAttributes(Dictionary<uint, DataElement> data, uint itemIndex)
         {
             // reads index -> map<AttributeName, AttributeValueIndex>
             var itemAttributes = new Dictionary<string, DataElement>();
@@ -145,7 +153,7 @@ namespace PipBoy
             return itemAttributes;
         }
 
-        private static List<Dictionary<string, DataElement>> ReadListOfAttributeMaps(Dictionary<uint, DataElement> data, uint itemIndex)
+        private List<Dictionary<string, DataElement>> ReadListOfAttributeMaps(Dictionary<uint, DataElement> data, uint itemIndex)
         {
             // reads index -> list<Index> -> map<AttributeName, AttributeValueIndex>
             var result = new List<Dictionary<string, DataElement>>();
@@ -157,16 +165,16 @@ namespace PipBoy
             return result;
         }
 
-        private static void PrintAttributeMap(Dictionary<string, DataElement> attributeMap)
+        private void PrintAttributeMap(Dictionary<string, DataElement> attributeMap)
         {
             foreach (var attribute in attributeMap)
             {
-                Console.WriteLine("{0}: {1}", attribute.Key, attribute.Value);
+                _writer.WriteLine("{0}: {1}", attribute.Key, attribute.Value);
             }
-            Console.WriteLine();
+            _writer.WriteLine();
         }
 
-        private static void PrintAttributeMaps(List<Dictionary<string, DataElement>> attributeMaps)
+        private void PrintAttributeMaps(List<Dictionary<string, DataElement>> attributeMaps)
         {
             foreach (var attributeMap in attributeMaps)
             {

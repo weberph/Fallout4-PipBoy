@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace PipBoy
+namespace PipBoy.Debugging
 {
     // used for debugging
     public class Codebook : Dictionary<uint, string>
