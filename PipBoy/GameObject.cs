@@ -23,7 +23,7 @@ namespace PipBoy
         public Dictionary<string, uint> Properties { get; private set; }
         public uint[] Array { get; private set; }
         public DataElement Primitive { get; private set; }
-
+        
         public GameObject(GameStateManager gameStateManager, uint id, ObjectType type)
         {
             _gameStateManager = gameStateManager;
@@ -97,7 +97,7 @@ namespace PipBoy
             result = _gameStateManager.GameObjects[Array[index]];
             return true;
         }
-
+        
         public override bool TryConvert(ConvertBinder binder, out object result)
         {
             result = null;
@@ -106,13 +106,18 @@ namespace PipBoy
                 throw new RuntimeBinderException($"Cannot convert to {binder.Type} because the GameObject type is '{Type}' (expected: '{ObjectType.Primitive}')");
             }
 
-            if (!binder.Type.IsAssignableFrom(Primitive.ValueObject.GetType()))
+            if (!binder.Type.IsInstanceOfType(Primitive.ValueObject))
             {
                 throw new RuntimeBinderException($"Cannot convert from '{Primitive.ValueObject.GetType()}' to '{binder.Type}'");
             }
 
             result = Convert.ChangeType(Primitive.ValueObject, binder.Type);
             return true;
+        }
+
+        public T As<T>()
+        {
+            return (T)(dynamic)this;
         }
     }
 }

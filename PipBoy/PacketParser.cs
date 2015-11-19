@@ -35,10 +35,8 @@ namespace PipBoy
                 if (_codebook != null)
                 {
                     string name;
-                    if (!_codebook.TryGetValue(id, out name))
-                    {
-                        Debugger.Break();
-                    }
+                    _codebook.TryGetValue(id, out name);
+                    Debug.Assert(name != null);
                     _logger.Write(" - {0}", name ?? "<unknown>");
                 }
                 _logger.Write("] ");

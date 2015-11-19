@@ -97,8 +97,7 @@ namespace PipBoy
                 {
                     _gameStateManager.Update(data);
                 }
-                var x = (float)_gameStateManager.GameState.Map.World.Player.X;
-                Console.WriteLine("Player X position: " + x);
+                Console.WriteLine("Player X position: " + (float)_gameStateManager.GameState.Map.World.Player.X);
 
                 if ((first && DebugSettings.DumpInitialPacketParsing) || (!first && DebugSettings.DumpPacketParsing))
                 {
