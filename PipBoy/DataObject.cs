@@ -22,9 +22,12 @@ namespace PipBoy
     {
         public ElementType Type { get; private set; }
 
-        protected DataElement(ElementType type)
+        public object ValueObject { get; private set; }
+        
+        protected DataElement(ElementType type, object value)
         {
             Type = type;
+            ValueObject = value;
         }
     }
 
@@ -33,7 +36,7 @@ namespace PipBoy
         public T Value { get; protected set; }
 
         protected DataElement(ElementType type, T value)
-            : base(type)
+            : base(type, value)
         {
             Value = value;
         }

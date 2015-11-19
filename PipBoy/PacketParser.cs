@@ -34,9 +34,12 @@ namespace PipBoy
                 _logger.Write("[{0}", id);
                 if (_codebook != null)
                 {
-                    string name = "<unknown>";
-                    _codebook.TryGetValue(id, out name);
-                    _logger.Write(" - {0}", name);
+                    string name;
+                    if (!_codebook.TryGetValue(id, out name))
+                    {
+                        Debugger.Break();
+                    }
+                    _logger.Write(" - {0}", name ?? "<unknown>");
                 }
                 _logger.Write("] ");
                 switch (type)
@@ -102,6 +105,10 @@ namespace PipBoy
 
                         // TODO: figure out if MapElement is an uint->string map with extra values or an uint->(string, value) map
                         var appendixCount = reader.ReadUInt16();
+                        if (appendixCount > 0 && appendixCount != mapCount)
+                        {
+                            Debugger.Break();
+                        }
                         var extraValues = new uint[appendixCount];
                         for (int i = 0; i < appendixCount; i++)
                         {

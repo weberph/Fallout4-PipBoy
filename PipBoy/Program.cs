@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -12,7 +13,7 @@ namespace PipBoy
     class Program
     {
         private static readonly ManualResetEvent ExitMutex = new ManualResetEvent(false);
-        private static Dictionary<uint, string> _codebook;
+        private static Codebook _codebook;
         private static PacketParser _packetParser;
 
         static void Main(string[] args)
@@ -42,6 +43,12 @@ namespace PipBoy
                     ReadStream(ms, false);
                 }
             }
+
+            if (Debugger.IsAttached)
+            {
+                Console.WriteLine("finished");
+                Console.ReadLine();
+            }
         }
 
         private static void ReadStream(Stream stream, bool keepAlive)
@@ -59,6 +66,9 @@ namespace PipBoy
                 sendThread.Start(stream);
             }
 
+            _packetParser = new PacketParser();
+            _codebook = new Codebook();
+
             // read data
             bool first = true;
             while (!Console.KeyAvailable)
@@ -69,84 +79,118 @@ namespace PipBoy
                     break;
                 }
 
-                if (metaPacket[0] != 0)
+                if (metaPacket[0] == 0)
                 {
-                    var size = BitConverter.ToInt32(metaPacket, 0);
-                    var dataPacket = reader.ReadBytes(size);
-                    if (first)
-                    {
-                        ProcessInitialPacket(metaPacket, dataPacket);
-                        first = false;
-                    }
-                    else
-                    {
-                        ProcessPacket(metaPacket, dataPacket);
-                    }
+                    continue;
                 }
+
+                var size = BitConverter.ToInt32(metaPacket, 0);
+                var dataPacket = reader.ReadBytes(size);
+
+                var data = _packetParser.Process(dataPacket);
+                _codebook.Append(data);
+
+                if ((first && DebugSettings.DumpInitialPacketParsing) || (!first && DebugSettings.DumpPacketParsing))
+                {
+                    new PacketParser(_codebook, Console.Out).Process(dataPacket);
+                    if (first && DebugSettings.DumpInitialPacketContent)
+                    {
+                        DumpInitialPacket(data);
+                    }
+                    first = false;
+                }
+
+                Console.WriteLine("==================================================");
             }
             ExitMutex.Set();
         }
 
-        private static void ProcessInitialPacket(byte[] metaPacket, byte[] dataPacket)
+        public class Codebook : Dictionary<uint, string>
         {
-            var data = new PacketParser().Process(dataPacket);
-            _codebook = BuildCodebook(data);
+            private List<uint> _visitedElements;
 
-            if (DebugSettings.DumpInitialPacketParsing)
+            public void Append(Dictionary<uint, DataElement> data)
             {
-                new PacketParser(_codebook, Console.Out).Process(dataPacket);
+                _visitedElements = new List<uint>();
+                AppendInternal(data);
+
+                while (data.Keys.Except(Keys).Any())    // while unknown keys exist: visit remaining elements
+                {
+                    AppendInternal(data.Keys.Except(_visitedElements).ToDictionary(k => k, k => data[k]));
+                }
             }
 
-            _packetParser = new PacketParser(_codebook, DebugSettings.DumpPacketParsing ? Console.Out : null);
-
-            if (DebugSettings.DumpInitialPacketContent)
+            private void AppendInternal(Dictionary<uint, DataElement> data)
             {
-                DumpInitialPacket(data);
+                var startIndex = data.Keys.Min();
+                string prefix;
+                TryGetValue(startIndex, out prefix);
+                BuildCodebook(data, startIndex, prefix ?? "", this);
             }
-        }
 
-        static void ProcessPacket(byte[] metaPacket, byte[] dataPacket)
-        {
-            _packetParser.Process(dataPacket);
-        }
-
-        private static Dictionary<uint, string> BuildCodebook(Dictionary<uint, DataElement> data)
-        {
-            var codebook = new Dictionary<uint, string>();
-            BuildCodebook(data, 0, "", codebook);
-            return codebook;
-        }
-
-        private static void BuildCodebook(Dictionary<uint, DataElement> data, uint index, string prefix, Dictionary<uint, string> codebook)
-        {
-            var map = ((MapElement)data[index]).Value;
-
-            foreach (var item in map)
+            private void BuildCodebook(Dictionary<uint, DataElement> data, uint index, string prefix, Dictionary<uint, string> codebook)
             {
-                var name = item.Value;
-                if (prefix.Length > 0)
+                DataElement indexedElement;
+                if (!data.TryGetValue(index, out indexedElement))
                 {
-                    name = prefix + "::" + name;
+                    return;
                 }
 
-                codebook.Add(item.Key, name);
+                _visitedElements.Add(index);
+                
+                switch (indexedElement.Type)
+                {
+                    case ElementType.Map:
+                        var map = ((MapElement)indexedElement).Value;
+                        AddOrUpdate(codebook, index, prefix);
 
-                var element = data[item.Key];
-                if (element is MapElement)
-                {
-                    BuildCodebook(data, item.Key, name, codebook);
-                }
-                else if (element is ListElement)
-                {
-                    // note: no nested lists supported
-                    var list = ((ListElement)element).Value;
-                    if (list.Count > 0 && data[list[0]] is MapElement)
-                    {
-                        foreach (var subElement in list)
+                        foreach (var item in map)
                         {
-                            BuildCodebook(data, subElement, name, codebook);
+                            var name = item.Value;
+                            if (prefix.Length > 0)
+                            {
+                                name = prefix + "::" + name;
+                            }
+
+                            codebook.Add(item.Key, name);
+                            BuildCodebook(data, item.Key, name, codebook);
                         }
+                        break;
+                    case ElementType.List:
+                        AddOrUpdate(codebook, index, prefix);
+
+                        var list = ((ListElement)indexedElement).Value;
+                        for (var i = 0; i < list.Count; i++)
+                        {
+                            var name = prefix + $"[{i}]";
+                            AddOrUpdate(codebook, list[i], name);
+                            BuildCodebook(data, list[i], name, codebook);
+                        }
+                        break;
+                }
+            }
+
+            private static void AddOrUpdate(Dictionary<uint, string> codebook, uint index, string name)
+            {
+                string assertName;
+                if (codebook.TryGetValue(index, out assertName))
+                {
+                    if (assertName != name)
+                    {
+                        if (assertName.Contains("[") && name.Contains("["))
+                        {
+                            if (name.Substring(0, assertName.IndexOf('[')) == assertName.Substring(0, assertName.IndexOf('[')))
+                            {
+                                codebook[index] = name;
+                                return;
+                            }
+                        }
+                        Debug.Assert(false);
                     }
+                }
+                else
+                {
+                    codebook.Add(index, name);
                 }
             }
         }
