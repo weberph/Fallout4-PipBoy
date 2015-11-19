@@ -52,9 +52,8 @@ namespace PipBoy
 
         private static void ReadStream(Stream stream, bool keepAlive)
         {
-            var reader = new BinaryReader(stream);
-
             // read header
+            var reader = new BinaryReader(stream);
             var headerMetaPacket = reader.ReadBytes(5);
             var headerPacket = reader.ReadBytes(headerMetaPacket[0]); // ~35 bytes
 
@@ -65,50 +64,11 @@ namespace PipBoy
                 sendThread.Start(stream);
             }
 
-            _packetParser = new PacketParser();
-            _codebook = new Codebook();
+            var gameStateReader = new GameStateReader(stream);
 
-            // read data
-            bool first = true;
-            while (!Console.KeyAvailable)
+            while (!Console.KeyAvailable && gameStateReader.NextState())
             {
-                var metaPacket = reader.ReadBytes(5);
-                if (metaPacket.Length < 5)
-                {
-                    break;
-                }
-
-                if (metaPacket[0] == 0)
-                {
-                    continue;
-                }
-
-                var size = BitConverter.ToInt32(metaPacket, 0);
-                var dataPacket = reader.ReadBytes(size);
-
-                var data = _packetParser.Process(dataPacket);
-                _codebook.Append(data);
-
-                if (first)
-                {
-                    _gameStateManager = new GameStateManager(data);
-                }
-                else
-                {
-                    _gameStateManager.Update(data);
-                }
-                Console.WriteLine("Player X position: " + (float)_gameStateManager.GameState.Map.World.Player.X);
-
-                if ((first && DebugSettings.DumpInitialPacketParsing) || (!first && DebugSettings.DumpPacketParsing))
-                {
-                    new PacketParser(_codebook, Console.Out).Process(dataPacket);
-                    if (first && DebugSettings.DumpInitialPacketContent)
-                    {
-                        InitialPacketDumper.DumpInitialPacket(data);
-                    }
-                    Console.WriteLine("==================================================");
-                }
-                first = false;
+                Console.WriteLine("Player X position: " + (float)gameStateReader.GameState.Map.World.Player.X);
             }
             ExitMutex.Set();
         }

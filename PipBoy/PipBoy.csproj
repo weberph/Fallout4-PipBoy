@@ -60,6 +60,7 @@
     <Compile Include="DebugSettings.cs" />
     <Compile Include="GameObject.cs" />
     <Compile Include="GameStateManager.cs" />
+    <Compile Include="GameStateReader.cs" />
     <Compile Include="InitialPacketDumper.cs" />
     <Compile Include="InventoryMap.cs" />
     <Compile Include="PacketParser.cs" />

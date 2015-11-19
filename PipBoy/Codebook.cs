@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace PipBoy
 {
+    // used for debugging
     public class Codebook : Dictionary<uint, string>
     {
         private List<uint> _visitedElements;
