@@ -118,6 +118,7 @@ namespace PipBoy
                             {
                                 _codebook.TryGetValue(someId, out name);
                             }
+                            extraValues[i] = someId;
                             _logger.WriteLine("\t\textraValue: {0}, {1}", someId, name ?? "<unknown>");
                         }
 

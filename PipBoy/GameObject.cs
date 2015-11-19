@@ -27,7 +27,7 @@ namespace PipBoy
         public GameObject(GameStateManager gameStateManager, uint id, ObjectType type)
         {
             _gameStateManager = gameStateManager;
-            id = Id;
+            Id = id;
             Type = type;
         }
 
@@ -57,10 +57,21 @@ namespace PipBoy
                 throw new RuntimeBinderException($"Cannot get property '{binder.Name}' because the GameObject type is '{Type}' (expected: '{ObjectType.Object}')");
             }
 
-            uint index;
-            if (!Properties.TryGetValue(binder.Name, out index))
+            var name = binder.Name;
+            // allow access to elements where the name is a number (use '_' to prefix the number during dynamic member access)
+            if (name.Length > 2 && name[0] == '_')
             {
-                throw new RuntimeBinderException($"Property '{binder.Name}' not found");
+                int numericName;
+                if (int.TryParse(name.Substring(1), out numericName))
+                {
+                    name = name.Substring(1);
+                }
+            }
+
+            uint index;
+            if (!Properties.TryGetValue(name, out index))
+            {
+                throw new RuntimeBinderException($"Property '{name}' not found");
             }
 
             result = _gameStateManager.GameObjects[index];
