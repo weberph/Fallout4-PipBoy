@@ -23,6 +23,8 @@ namespace PipBoyApp
 {
     public partial class MainWindow : Window
     {
+        private Polygon _lastPolygon;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -32,19 +34,23 @@ namespace PipBoyApp
         {
 
         }
-        
+
         private void DrawPlayerMarker(dynamic gameState)
         {
+            // TODO: find a correct way to calculate the position on the background image / proper snippet of CompanionWorldMap.png
+            MainCanvas.Children.Remove(_lastPolygon);
+
             float nwx = gameState.Map.World.Extents.NWX;
             float nwy = gameState.Map.World.Extents.NWY;
             float nex = gameState.Map.World.Extents.NEX;
             float swy = gameState.Map.World.Extents.SWY;
-            
+
             var mapWidth = Math.Abs(nwx - nex);
             var mapHeight = Math.Abs(swy - nwy);
-            
+
             double gameX = (float)gameState.Map.World.Player.X;
             double gameY = (float)gameState.Map.World.Player.Y;
+            double direction = (float)gameState.Map.World.Player.Rotation;
 
             gameX += mapWidth / 2.0;
             gameY = mapHeight - (gameY + mapHeight / 2.0);
@@ -54,31 +60,37 @@ namespace PipBoyApp
             var x = gameX * scaleX;
             var y = gameY * scaleY;
 
-            var leftMargin = (MainGrid.ActualWidth - MapImage.ActualWidth) / 2.0;
+            var leftMargin = (MainCanvas.ActualWidth - MapImage.ActualWidth) / 2.0;
             x += leftMargin;
 
             var polygon = new Polygon();
             var width = 20;
             var heigth = 10;
+            var midX = x;
+            var midY = y;
             x -= width / 2.0;
             y -= heigth / 2.0;
+            
             polygon.Points.Add(new Point(x, y));
             polygon.Points.Add(new Point(x + width, y + heigth / 2.0));
             polygon.Points.Add(new Point(x, y + heigth));
             polygon.Stroke = Brushes.Green;
             polygon.Fill = Brushes.Green;
-
-            MainGrid.Children.Add(polygon);
+            polygon.RenderTransform = new RotateTransform(direction - 90.0, midX, midY);
+            MainCanvas.Children.Add(polygon);
+            _lastPolygon = polygon;
         }
 
         public void OnGameStateChanged(dynamic gameState)
         {
             Dispatcher.Invoke((Action)(() => DrawPlayerMarker(gameState)));
+            Thread.Sleep(10);
         }
 
         public void OnFinished()
         {
-            Dispatcher.Invoke(() => MessageBox.Show("Finished"));
+            //Dispatcher.Invoke(() => MessageBox.Show("Finished"));
+            Dispatcher.Invoke(Close);
         }
     }
 }

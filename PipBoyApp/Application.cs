@@ -45,9 +45,9 @@ namespace PipBoyApp
 
         protected override void OnExit(ExitEventArgs e)
         {
+            _exitMutex.Release(int.MaxValue);
             base.OnExit(e);
 
-            _exitMutex.Release(int.MaxValue);
             _ioThread.Join();
             _keepaliveThread?.Join();
         }

@@ -4,11 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PipBoyApp"
-        mc:Ignorable="d"
+        mc:Ignorable="d" x:Name="AppWindow"
         Title="MainWindow" Height="800" Width="1000" Loaded="Window_Loaded" WindowStartupLocation="CenterOwner">
 
-    <Grid x:Name="MainGrid">
-        <Image x:Name="MapImage" Source="/PipBoyApp;component/Images/CompanionWorldMapStripped.png" Stretch="Uniform" />
-    </Grid>
-        
+    <Canvas x:Name="MainCanvas">
+        <Image x:Name="MapImage" Source="/PipBoyApp;component/Images/CompanionWorldMapStripped.png" Stretch="Uniform" 
+               Width="{Binding ElementName=MainCanvas, Path=ActualWidth}"
+               Height="{Binding ElementName=MainCanvas, Path=ActualHeight}"
+            />
+    </Canvas>
+
 </Window>
