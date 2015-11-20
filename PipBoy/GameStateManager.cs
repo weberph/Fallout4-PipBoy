@@ -28,6 +28,12 @@ namespace PipBoy
                 var mapElement = element.Value as MapElement;
                 if (mapElement != null && mapElement.ExtraValues.Length > 0)
                 {
+                    if (mapElement.ExtraValues.Length != mapElement.Value.Count)
+                    {
+                        // TODO: handle mapElements where ExtraValues.Length != mapElement.Value.Count
+                        continue;
+                    }
+
                     // this is a partial object update
                     var parent = GameObjects[element.Key];
                     Debug.Assert(parent.Type == ObjectType.Object);

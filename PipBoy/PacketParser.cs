@@ -105,7 +105,7 @@ namespace PipBoy
                         var appendixCount = reader.ReadUInt16();
                         if (appendixCount > 0 && appendixCount != mapCount)
                         {
-                            Debugger.Break();
+                            //Debugger.Break(); // TODO: investigate
                         }
                         var extraValues = new uint[appendixCount];
                         for (int i = 0; i < appendixCount; i++)
