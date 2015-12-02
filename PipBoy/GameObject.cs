@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using Microsoft.CSharp.RuntimeBinder;
@@ -23,7 +24,7 @@ namespace PipBoy
         public Dictionary<string, uint> Properties { get; private set; }
         public uint[] Array { get; private set; }
         public DataElement Primitive { get; private set; }
-        
+
         public GameObject(GameStateManager gameStateManager, uint id, ObjectType type)
         {
             _gameStateManager = gameStateManager;
@@ -97,21 +98,41 @@ namespace PipBoy
             result = _gameStateManager.GameObjects[Array[index]];
             return true;
         }
-        
+
         public override bool TryConvert(ConvertBinder binder, out object result)
         {
+            return ConvertImpl(binder.Type, out result);
+        }
+
+        private bool ConvertImpl(Type type, out object result)
+        {
             result = null;
+
+            if (Type == ObjectType.Array && type.BaseType == typeof(Array))
+            {
+                var elementType = type.GetElementType();
+                var array = (Array)Activator.CreateInstance(type, Array.Length);
+                for (int i = 0; i < Array.Length; i++)
+                {
+                    object element;
+                    _gameStateManager.GameObjects[Array[i]].ConvertImpl(elementType, out element);
+                    array.SetValue(element, i);
+                }
+                result = array;
+                return true;
+            }
+
             if (Type != ObjectType.Primitive)
             {
-                throw new RuntimeBinderException($"Cannot convert to {binder.Type} because the GameObject type is '{Type}' (expected: '{ObjectType.Primitive}')");
+                throw new RuntimeBinderException($"Cannot convert to {type} because the GameObject type is '{Type}' (expected: '{ObjectType.Primitive}')");
             }
 
-            if (!binder.Type.IsInstanceOfType(Primitive.ValueObject))
+            if (!type.IsInstanceOfType(Primitive.ValueObject))
             {
-                throw new RuntimeBinderException($"Cannot convert from '{Primitive.ValueObject.GetType()}' to '{binder.Type}'");
+                throw new RuntimeBinderException($"Cannot convert from '{Primitive.ValueObject.GetType()}' to '{type}'");
             }
 
-            result = Convert.ChangeType(Primitive.ValueObject, binder.Type);
+            result = Convert.ChangeType(Primitive.ValueObject, type);
             return true;
         }
 
