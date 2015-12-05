@@ -67,7 +67,7 @@ namespace PipBoy
                 _gameStateManager.Update(data);
             }
 
-            if (_debugSettings.IsLoggingDisabled)
+            if (!_debugSettings.IsLoggingDisabled)
             {
                 _codebook.Append(data);
                 DebugDump(dataPacket, data);
