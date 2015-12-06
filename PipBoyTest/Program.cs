@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Dynamic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using PipBoy;
@@ -12,7 +15,8 @@ namespace PipBoyTest
     class Program
     {
         private static readonly ManualResetEvent ExitMutex = new ManualResetEvent(false);
-        
+        private static GameStateReader _gameStateReader;
+
         static void Main(string[] args)
         {
             if (DebugSettings.UseTcp)
@@ -48,6 +52,7 @@ namespace PipBoyTest
             }
         }
 
+
         private static void ReadStream(Stream stream, bool keepAlive)
         {
             // read header
@@ -62,13 +67,38 @@ namespace PipBoyTest
                 sendThread.Start(stream);
             }
 
-            var gameStateReader = new GameStateReader(stream);
+            _gameStateReader = new GameStateReader(stream);
+            //var gameStateReader = new GameStateReader(stream, new GameStateReaderDebugSettings { Writer = Console.Out, DumpInitialPacketParsing = true, DumpPacketParsing = true });
 
-            while (!Console.KeyAvailable && gameStateReader.NextState())
+            _gameStateReader.NextState();
+            //var playerPosition = (GameObject) gameStateReader.GameState.Map.World.Player;
+            //playerPosition.Changed += PlayerPosition_Changed;
+
+            var inventory = (GameObject) _gameStateReader.GameState.Inventory;
+            inventory.Changed += Inventory_Changed;
+
+            while (!Console.KeyAvailable && _gameStateReader.NextState())
             {
-                Console.WriteLine("Player X position: " + (float)gameStateReader.GameState.Map.World.Player.X);
+                //Console.WriteLine("Player X position: " + (float)gameStateReader.GameState.Map.World.Player.X);
             }
             ExitMutex.Set();
+        }
+
+        private static void Inventory_Changed(object sender, GameObjectChangedEvent e)
+        {
+            foreach (var changedChild in e.ChangedChildren)
+            {
+                Console.WriteLine($"inventory changed: [{changedChild.Id}: {changedChild.Path}] = {changedChild}");
+            }
+            Console.WriteLine("================================================================================");
+        }
+
+        private static void PlayerPosition_Changed(object sender, GameObjectChangedEvent e)
+        {
+            foreach (var changedChild in e.ChangedChildren )
+            {
+                Console.WriteLine("position changed: " + changedChild);
+            }
         }
 
         static void SendThread(object streamObj)

@@ -16,10 +16,6 @@ namespace PipBoy
         public bool DumpPacketParsing { get; set; } = false;
 
         public bool IsLoggingDisabled => Writer == null || !(DumpInitialPacketParsing || DumpInitialPacketContent || DumpPacketParsing);
-
-        public GameStateReaderDebugSettings()
-        {
-        }
     }
 
     public class GameStateReader
@@ -29,14 +25,14 @@ namespace PipBoy
         private readonly BinaryReader _reader;
         private readonly PacketParser _packetParser;
         private readonly Codebook _codebook;
-        private GameStateManager _gameStateManager;
         private bool _first = true;
 
-        public dynamic GameState => _gameStateManager.GameState;
+        public dynamic GameState => GameStateManager.GameState;
+        public GameStateManager GameStateManager { get; private set; }
 
         public GameStateReader(Stream stream, GameStateReaderDebugSettings debugSettings = null)
         {
-            _reader = new BinaryReader(stream);
+            _reader = new BinaryReader(stream, Encoding.UTF8, true);
             _packetParser = new PacketParser();
             _codebook = new Codebook();
             _debugSettings = debugSettings ?? new GameStateReaderDebugSettings();
@@ -60,11 +56,11 @@ namespace PipBoy
 
             if (_first)
             {
-                _gameStateManager = new GameStateManager(data);
+                GameStateManager = new GameStateManager(data);
             }
             else
             {
-                _gameStateManager.Update(data);
+                GameStateManager.Update(data);
             }
 
             if (!_debugSettings.IsLoggingDisabled)

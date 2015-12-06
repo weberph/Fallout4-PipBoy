@@ -18,12 +18,18 @@ namespace PipBoy
     {
         private readonly GameStateManager _gameStateManager;
 
+        private string _path;
+
         public uint Id { get; private set; }
         public ObjectType Type { get; private set; }
-
+        
         public Dictionary<string, uint> Properties { get; private set; }
         public uint[] Array { get; private set; }
         public DataElement Primitive { get; private set; }
+
+        public string Path => _path ?? (_path = _gameStateManager.GetName(Id));
+
+        public event EventHandler<GameObjectChangedEvent> Changed;
 
         public GameObject(GameStateManager gameStateManager, uint id, ObjectType type)
         {
@@ -49,7 +55,7 @@ namespace PipBoy
         {
             Primitive = element;
         }
-
+        
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
             result = null;
@@ -139,6 +145,35 @@ namespace PipBoy
         public T As<T>()
         {
             return (T)(dynamic)this;
+        }
+
+        public void RaiseChanged(List<GameObject> changedChildren)
+        {
+            Changed?.Invoke(this, new GameObjectChangedEvent(changedChildren));
+        }
+
+        public override string ToString()
+        {
+            switch (Type)
+            {
+                case ObjectType.Primitive:
+                    return Primitive.ToString();
+                case ObjectType.Object:
+                    return "[Object]";
+                case ObjectType.Array:
+                    return "[Array]";
+            }
+            throw new NotImplementedException();
+        }
+    }
+
+    public class GameObjectChangedEvent : EventArgs
+    {
+        public List<GameObject> ChangedChildren { get; }
+
+        public GameObjectChangedEvent(List<GameObject> changedChildren)
+        {
+            ChangedChildren = changedChildren;
         }
     }
 }
