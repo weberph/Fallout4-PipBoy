@@ -50,15 +50,8 @@ namespace PipBoy
                         var newElement = mapElement.Value.Single(kvp => kvp.Value == nameByIndex);
                         parent.Properties[nameByIndex] = newElement.Key;
                         var oldGameObject = GameObjects[oldIndex];
-                        GameObjects.Remove(oldIndex);
-                        _extendedInfo.Remove(oldIndex);
+                        RemoveObject(oldGameObject);
                         Inspect(GameObjects[newElement.Key], nameByIndex, _extendedInfo[index]);
-                        //Console.WriteLine($"Removed {oldIndex}");
-                        Debug.Assert(oldGameObject.Type != ObjectType.Object);
-                        if (oldGameObject.Type == ObjectType.Array)
-                        {
-                            RemoveOrphanedListItems(oldGameObject, GameObjects[newElement.Key]); // assume newElement.Key has been added already -> ok?
-                        }
                     }
                 }
                 else
@@ -68,15 +61,15 @@ namespace PipBoy
                     if (GameObjects.TryGetValue(index, out oldGameObject))
                     {
                         Debug.Assert(gameObject.Type != ObjectType.Object);
+                        var oldExtendedInfo = _extendedInfo[index];
+                        _extendedInfo.Remove(index);
                         GameObjects[index] = gameObject;
                         if (oldGameObject.Type == ObjectType.Array)
                         {
                             RemoveOrphanedListItems(oldGameObject, gameObject);
                         }
                         changedObjectsSources.Add(index);
-                        var stateEx = _extendedInfo[index];
-                        _extendedInfo.Remove(index);
-                        Inspect(gameObject, stateEx.Name, _extendedInfo[stateEx.ParentId]);
+                        Inspect(gameObject, oldExtendedInfo.Name, _extendedInfo[oldExtendedInfo.ParentId]);
                     }
                     else
                     {
