@@ -52,6 +52,7 @@ namespace PipBoy
                         var oldGameObject = GameObjects[oldIndex];
                         GameObjects.Remove(oldIndex);
                         _extendedInfo.Remove(oldIndex);
+                        Inspect(GameObjects[newElement.Key], nameByIndex, _extendedInfo[index]);
                         //Console.WriteLine($"Removed {oldIndex}");
                         Debug.Assert(oldGameObject.Type != ObjectType.Object);
                         if (oldGameObject.Type == ObjectType.Array)
