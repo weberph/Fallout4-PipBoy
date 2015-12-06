@@ -29,6 +29,7 @@ namespace PipBoyDump
                 {
                     try
                     {
+                        //var gameStateReader = new GameStateReader(stream, new GameStateReaderDebugSettings { Writer = writer, DumpInitialPacketParsing = true, DumpPacketParsing = true });
                         var gameStateReader = new GameStateReader(stream);
                         gameStateReader.NextState(); // read first state
                         var state = (GameObject)gameStateReader.GameState;
