@@ -51,12 +51,14 @@
     <Compile Include="Debugging\Codebook.cs" />
     <Compile Include="DataMap.cs" />
     <Compile Include="DataObject.cs" />
+    <Compile Include="Debugging\CopyInputStream.cs" />
     <Compile Include="Debugging\InitialPacketDumper.cs" />
     <Compile Include="GameObject.cs" />
     <Compile Include="GameStateManager.cs" />
     <Compile Include="GameStateReader.cs" />
     <Compile Include="InventoryMap.cs" />
     <Compile Include="PacketParser.cs" />
+    <Compile Include="PipBoyStreamProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
