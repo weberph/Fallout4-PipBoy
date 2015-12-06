@@ -156,12 +156,13 @@ namespace PipBoy
         private void ToString(StringBuilder sb, int indent = 0)
         {
             sb.Append('\t', indent);
-            sb.AppendLine($"[{Id}: {Path}] = {ToString()}");
+            sb.Append($"[{Id}: {Path}] = {ToString()}");
 
             if (Type == ObjectType.Object)
             {
                 foreach (var property in Properties)
                 {
+                    sb.AppendLine();
                     _gameStateManager.GameObjects[property.Value].ToString(sb, indent + 1);
                 }
             }
@@ -170,6 +171,7 @@ namespace PipBoy
             {
                 foreach (var id in Array)
                 {
+                    sb.AppendLine();
                     _gameStateManager.GameObjects[id].ToString(sb, indent + 1);
                 }
             }
