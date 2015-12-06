@@ -67,6 +67,14 @@ namespace PipBoyDump
             }).ParseArguments(args, options))
             {
                 var inputFile = options.InputFile;
+
+                if (inputFile == null && options.Host == null)
+                {
+                    Console.Error.WriteLine("Error: either an input file or a host name has to be specified.");
+                    Console.Error.WriteLine(options.GetUsage());
+                    return;
+                }
+
                 if (inputFile != null && !File.Exists(inputFile))
                 {
                     Console.Error.WriteLine("Error: input file not found.");
