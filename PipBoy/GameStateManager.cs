@@ -112,6 +112,11 @@ namespace PipBoy
         public string GetName(uint id)
         {
             var gameObject = _extendedInfo[id];
+            if (id == 0)
+            {
+                return gameObject.Name;
+            }
+
             var sb = new StringBuilder();
             var isArray = false;
             foreach (var parentId in gameObject.Path.Skip(1))

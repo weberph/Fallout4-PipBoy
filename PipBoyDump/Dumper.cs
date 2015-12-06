@@ -32,6 +32,7 @@ namespace PipBoyDump
                         var gameStateReader = new GameStateReader(stream);
                         gameStateReader.NextState(); // read first state
                         var state = (GameObject)gameStateReader.GameState;
+                        writer.WriteLine(state.ToString(true));
                         state.Changed += (s, e) =>
                         {
                             foreach (var changedChild in e.ChangedChildren)

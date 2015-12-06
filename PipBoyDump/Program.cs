@@ -40,6 +40,9 @@ namespace PipBoyDump
         public string GameobjectsFile { get; set; }
 
 
+        // TODO: flat objects (no recursive dumping)
+        // TODO: dump initial state on/off
+
         // Helper
 
         [HelpOption(HelpText = "Dispaly this help screen.")]
