@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DEA64C06-3CB6-436B-B662-3765E3B12CC8}</ProjectGuid>
+    <ProjectGuid>{8AFA1821-01FB-4719-9748-99EB01ADB4FF}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PipBoyTest</RootNamespace>
-    <AssemblyName>PipBoyTest</AssemblyName>
+    <RootNamespace>PipBoyDump</RootNamespace>
+    <AssemblyName>PipBoyDump</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -47,18 +47,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DebugSettings.cs" />
+    <Compile Include="CopyInputStream.cs" />
+    <Compile Include="Dumper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PipBoyDump\PipBoyDump.csproj">
-      <Project>{8afa1821-01fb-4719-9748-99eb01adb4ff}</Project>
-      <Name>PipBoyDump</Name>
-    </ProjectReference>
     <ProjectReference Include="..\PipBoy\PipBoy.csproj">
       <Project>{f0ea6795-5745-4a30-bcc7-98f8dad7c0b5}</Project>
       <Name>PipBoy</Name>

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PipBoy", "PipBoy\PipBoy.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PipBoyTest", "PipBoyTest\PipBoyTest.csproj", "{DEA64C06-3CB6-436B-B662-3765E3B12CC8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PipBoyDump", "PipBoyDump\PipBoyDump.csproj", "{8AFA1821-01FB-4719-9748-99EB01ADB4FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{DEA64C06-3CB6-436B-B662-3765E3B12CC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DEA64C06-3CB6-436B-B662-3765E3B12CC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DEA64C06-3CB6-436B-B662-3765E3B12CC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AFA1821-01FB-4719-9748-99EB01ADB4FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AFA1821-01FB-4719-9748-99EB01ADB4FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AFA1821-01FB-4719-9748-99EB01ADB4FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AFA1821-01FB-4719-9748-99EB01ADB4FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

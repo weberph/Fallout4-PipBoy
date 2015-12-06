@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace PipBoyTest
+namespace PipBoyDump
 {
     public class CopyInputStream : Stream
     {
