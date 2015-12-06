@@ -76,12 +76,12 @@ namespace PipBoy
         {
             if ((_first && _debugSettings.DumpInitialPacketParsing) || (!_first && _debugSettings.DumpPacketParsing))
             {
-                new PacketParser(_codebook, Console.Out).Process(dataPacket);
+                new PacketParser(_codebook, _debugSettings.Writer).Process(dataPacket);
                 if (_first && _debugSettings.DumpInitialPacketContent)
                 {
                     InitialPacketDumper.DumpInitialPacket(data, _debugSettings.Writer);
                 }
-                Console.WriteLine("==================================================");
+                _debugSettings.Writer.WriteLine("==================================================");
             }
         }
     }
