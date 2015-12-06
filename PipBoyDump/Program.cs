@@ -4,9 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using PipBoy;
 
 namespace PipBoyDump
 {
@@ -67,7 +69,7 @@ namespace PipBoyDump
                     Console.Error.WriteLine("Error: input file not found.");
                     return;
                 }
-                
+
                 var rawFile = options.RawFile;
                 if (rawFile != null && !ValidateOutputFile(rawFile))
                 {
@@ -83,11 +85,47 @@ namespace PipBoyDump
 
                 try
                 {
-                    Dumper.Run(options);
+                    Dump(options);
                 }
                 catch (Exception e)
                 {
                     Console.Error.WriteLine("Unexpected error: " + e.Message);
+                }
+            }
+        }
+
+        public static void Dump(Options options)
+        {
+            using (var streamProvider = new PipBoyStreamProvider(options.RawFile))
+            {
+                Stream stream;
+
+                if (options.Host != null)
+                {
+                    stream = streamProvider.Connect(options.Host, options.Port);
+                }
+                else if (options.InputFile != null)
+                {
+                    stream = streamProvider.ReadFile(options.InputFile);
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+
+                using (stream)
+                {
+                    var dumper = new Dumper(options.GameobjectsFile);
+                    var dumpThread = new Thread(_ => dumper.Dump(stream));
+                    dumpThread.Start();
+
+                    Console.WriteLine("Dump running... press key to exit");
+                    while (dumpThread.IsAlive && !Console.KeyAvailable)
+                    {
+                        Thread.Sleep(100);
+                    }
+                    dumper.SignalStop();
+                    dumpThread.Join();
                 }
             }
         }
