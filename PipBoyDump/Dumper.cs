@@ -52,7 +52,6 @@ namespace PipBoyDump
                     catch (Exception e)
                     {
                         writer.WriteLine("Exception reading game objects: " + e.Message);
-                        writer.WriteLine("Stream position: " + stream.Position);
                         writer.WriteLine(e.StackTrace);
                     }
                 }
