@@ -60,3 +60,28 @@ position changed: [32827: Map::World::Player::Rotation] = 89,26334
 position changed: [32826: Map::World::Player::Y] = -47776,65
 ...
 ```
+
+
+### Command line tool to dump data
+
+To record data that can be used with the `StreamProvider::ReadFile` method, execute via command line:
+```
+> PipBoyDump.exe -c 192.168.0.5 -r raw.dump
+```
+Objects can be dumped on the fly:
+```
+> PipBoyDump.exe -c 192.168.0.5 -r raw.dump -g objects.txt
+```
+Objects can also be created from file:
+```
+> PipBoyDump.exe -f raw.dump -g objects.txt
+```
+
+##### Options
+```
+ -c, --connect        Host to connect to.
+ -p, --port           (Default: 27000) Port to connect to.
+ -f, --file           Input file (instead of ip/port).
+ -r, --raw            File to write raw data received via network.
+ -g, --gameobjects    File to write the structured game objects.
+```
