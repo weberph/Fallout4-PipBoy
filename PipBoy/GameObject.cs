@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
+using System.Text;
 using Microsoft.CSharp.RuntimeBinder;
 
 namespace PipBoy
@@ -22,7 +23,7 @@ namespace PipBoy
 
         public uint Id { get; private set; }
         public ObjectType Type { get; private set; }
-        
+
         public Dictionary<string, uint> Properties { get; private set; }
         public uint[] Array { get; private set; }
         public DataElement Primitive { get; private set; }
@@ -55,7 +56,7 @@ namespace PipBoy
         {
             Primitive = element;
         }
-        
+
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
             result = null;
@@ -152,6 +153,40 @@ namespace PipBoy
             Changed?.Invoke(this, new GameObjectChangedEvent(changedChildren));
         }
 
+        private void ToString(StringBuilder sb, int indent = 0)
+        {
+            sb.Append('\t', indent);
+            sb.AppendLine($"[{Id}: {Path}] = {ToString()}");
+
+            if (Type == ObjectType.Object)
+            {
+                foreach (var property in Properties)
+                {
+                    _gameStateManager.GameObjects[property.Value].ToString(sb, indent + 1);
+                }
+            }
+
+            if (Type == ObjectType.Array)
+            {
+                foreach (var id in Array)
+                {
+                    _gameStateManager.GameObjects[id].ToString(sb, indent + 1);
+                }
+            }
+        }
+
+        public string ToString(bool full)
+        {
+            if (!full)
+            {
+                return ToString();
+            }
+
+            var sb = new StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+
         public override string ToString()
         {
             switch (Type)
@@ -159,11 +194,11 @@ namespace PipBoy
                 case ObjectType.Primitive:
                     return Primitive.ToString();
                 case ObjectType.Object:
-                    return "[Object]";
+                    return $"[Object of {Properties.Count}]";
                 case ObjectType.Array:
-                    return "[Array]";
+                    return $"[Array of {Array.Length}]";
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
     }
 
