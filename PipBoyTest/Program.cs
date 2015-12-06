@@ -11,8 +11,6 @@ using PipBoyDump;
 
 namespace PipBoyTest
 {
-    // uses Install-Package Microsoft.CodeDom.Providers.DotNetCompilerPlatform
-
     class Program
     {
         private static readonly ManualResetEvent ExitMutex = new ManualResetEvent(false);
