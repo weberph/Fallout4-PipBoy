@@ -1,6 +1,10 @@
 # Fallout4-PipBoy
 Library to use the TCP communication mechanism/protocol from PipBoy Android/iOS app with .NET
 
+### [WIP] Sending commands
+
+*see branch [CommandSending](https://github.com/weberph/Fallout4-PipBoy/tree/CommandSending)*
+
 ### Library usage
 
 The game state can be tracked with the `GameStateReader` class and accessed via a dynamic object:
