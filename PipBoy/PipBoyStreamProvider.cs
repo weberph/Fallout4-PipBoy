@@ -42,6 +42,14 @@ namespace PipBoy
             // read header
             var reader = new BinaryReader(stream);
             var headerMetaPacket = reader.ReadBytes(5);
+            var packetType = headerMetaPacket[4];
+            if (packetType == 0x02)
+            {
+                // busy
+                stream.Close();
+                throw new PipBoyBusyException();
+            }
+
             var headerPacket = reader.ReadBytes(headerMetaPacket[0]); // ~35 bytes
 
             if (keepAlive)
@@ -94,5 +102,9 @@ namespace PipBoy
                 _tcpClient = null;
             }
         }
+    }
+
+    public class PipBoyBusyException : Exception
+    {
     }
 }

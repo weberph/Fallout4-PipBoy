@@ -40,6 +40,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,6 +61,7 @@
     <Compile Include="GameStateManager.cs" />
     <Compile Include="GameStateReader.cs" />
     <Compile Include="InventoryMap.cs" />
+    <Compile Include="LocalMapData.cs" />
     <Compile Include="PacketParser.cs" />
     <Compile Include="PipBoyStreamProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

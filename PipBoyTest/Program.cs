@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
+using System.Windows.Forms;
 using PipBoy;
 using PipBoy.Debugging;
 using PipBoyDump;
@@ -105,11 +107,15 @@ namespace PipBoyTest
                         continue;
                     }
                     commandSender.Send(new Command(CommandType.ToggleRadio, id));
+                } else if (key == ConsoleKey.L)
+                {
+                    commandSender.Send(new Command(CommandType.RequestLocalMap));
                 }
                 else
                 {
                     Console.WriteLine("r - print/toggle radio stations");
                     Console.WriteLine("q - print/toggle quests");
+                    Console.WriteLine("l - request local map data");
                     Console.WriteLine("x - exit");
                 }
             }
@@ -143,6 +149,7 @@ namespace PipBoyTest
             var stream = (Stream)streamObj;
             //var gameStateReader = new GameStateReader(stream, new GameStateReaderDebugSettings { Writer = Console.Out, DumpInitialPacketParsing = true, DumpPacketParsing = true });
             var gameStateReader = new GameStateReader(stream);
+            gameStateReader.LocalMapUpdate += GameStateReader_LocalMapUpdate;
 
             gameStateReader.NextState();        // read first state before starting the loop (required to register to the 'Changed' event)
 
@@ -186,6 +193,33 @@ namespace PipBoyTest
 
 
         // Event handlers
+        
+        private static void GameStateReader_LocalMapUpdate(object sender, LocalMapEventArgs e)
+        {
+            var bitmap = e.MapData.CreateBitmap();
+
+            new Thread(_ =>
+            {
+                var form = new Form
+                {
+                    Width = bitmap.Width + 20,
+                    Height = bitmap.Height + 50
+                };
+
+                var pictureBox = new PictureBox
+                {
+                    Width = bitmap.Width,
+                    Height = bitmap.Height,
+                    Image = bitmap
+                };
+
+                form.Controls.Add(pictureBox);
+                form.Show();
+                form.BringToFront();
+
+                Application.Run(form);
+            }).Start();
+        }
 
         private static void PlayerPosition_Changed(object sender, GameObjectChangedEvent e)
         {

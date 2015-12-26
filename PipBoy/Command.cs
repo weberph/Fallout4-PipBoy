@@ -9,7 +9,8 @@ namespace PipBoy
     {
         // TODO: use/drop item, toggle favourite, set/remove marker, fast travel, ...?
         ToggleQuest = 5,
-        ToggleRadio = 12
+        ToggleRadio = 12,
+        RequestLocalMap = 13,
     }
 
     [DataContract]

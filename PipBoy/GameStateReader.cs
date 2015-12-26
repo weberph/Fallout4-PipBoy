@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,6 +31,8 @@ namespace PipBoy
         public dynamic GameState => GameStateManager.GameState;
         public GameStateManager GameStateManager { get; private set; }
 
+        public event EventHandler<LocalMapEventArgs> LocalMapUpdate;
+
         public GameStateReader(Stream stream, GameStateReaderDebugSettings debugSettings = null)
         {
             _reader = new BinaryReader(stream, Encoding.UTF8, true);
@@ -41,6 +44,7 @@ namespace PipBoy
         public bool NextState()
         {
             int size;
+            byte packetType;
             do
             {
                 var metaPacket = ReadSafe(5);
@@ -49,27 +53,48 @@ namespace PipBoy
                     return false;
                 }
                 size = BitConverter.ToInt32(metaPacket, 0);
+                packetType = metaPacket[4];
             } while (size == 0);
 
-            var dataPacket = ReadSafe(size);
-            var data = _packetParser.Process(dataPacket);
+            if (packetType == 0x03)
+            {
+                var dataPacket = ReadSafe(size);
+                var data = _packetParser.Process(dataPacket);
+                if (_first)
+                {
+                    GameStateManager = new GameStateManager(data);
+                }
+                else
+                {
+                    GameStateManager.Update(data);
+                }
 
-            if (_first)
-            {
-                GameStateManager = new GameStateManager(data);
+                if (!_debugSettings.IsLoggingDisabled)
+                {
+                    _codebook.Append(data);
+                    DebugDump(dataPacket, data);
+                }
+                _first = false;
             }
-            else
+            else if (packetType == 0x04)
             {
-                GameStateManager.Update(data);
+                ProcessLocalMapData(size);
             }
 
-            if (!_debugSettings.IsLoggingDisabled)
-            {
-                _codebook.Append(data);
-                DebugDump(dataPacket, data);
-            }
-            _first = false;
             return true;
+        }
+
+        private void ProcessLocalMapData(int totalSize)
+        {
+            var width = _reader.ReadInt32();
+            var height = _reader.ReadInt32();
+            var topLeft = new MapPoint(_reader.ReadSingle(), _reader.ReadSingle());
+            var topRight = new MapPoint(_reader.ReadSingle(), _reader.ReadSingle());
+            var bottomLeft = new MapPoint(_reader.ReadSingle(), _reader.ReadSingle());
+            var remainingSize = totalSize - 8 * 4;
+            var bitmapData = _reader.ReadBytes(remainingSize);
+            var localMapData = new LocalMapData(width, height, topLeft, topRight, bottomLeft, bitmapData);
+            LocalMapUpdate?.Invoke(this, new LocalMapEventArgs(localMapData));
         }
 
         private byte[] ReadSafe(int size)
@@ -95,6 +120,16 @@ namespace PipBoy
                 }
                 _debugSettings.Writer.WriteLine("==================================================");
             }
+        }
+    }
+
+    public class LocalMapEventArgs : EventArgs
+    {
+        public LocalMapData MapData { get; }
+
+        public LocalMapEventArgs(LocalMapData mapData)
+        {
+            MapData = mapData;
         }
     }
 }
