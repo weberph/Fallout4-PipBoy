@@ -121,8 +121,11 @@ namespace PipBoy
                 var array = (Array)Activator.CreateInstance(type, Array.Length);
                 for (int i = 0; i < Array.Length; i++)
                 {
-                    object element;
-                    _gameStateManager.GameObjects[Array[i]].ConvertImpl(elementType, out element);
+                    object element = _gameStateManager.GameObjects[Array[i]];
+                    if (elementType != typeof(GameObject))
+                    {
+                        ((GameObject)element).ConvertImpl(elementType, out element);
+                    }
                     array.SetValue(element, i);
                 }
                 result = array;
