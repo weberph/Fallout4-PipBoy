@@ -43,7 +43,7 @@ namespace PipBoy
             int size;
             do
             {
-                var metaPacket = _reader.ReadBytes(5);
+                var metaPacket = ReadSafe(5);
                 if (metaPacket.Length < 5)
                 {
                     return false;
@@ -51,7 +51,7 @@ namespace PipBoy
                 size = BitConverter.ToInt32(metaPacket, 0);
             } while (size == 0);
 
-            var dataPacket = _reader.ReadBytes(size);
+            var dataPacket = ReadSafe(size);
             var data = _packetParser.Process(dataPacket);
 
             if (_first)
@@ -70,6 +70,18 @@ namespace PipBoy
             }
             _first = false;
             return true;
+        }
+
+        private byte[] ReadSafe(int size)
+        {
+            try
+            {
+                return _reader.ReadBytes(size);
+            }
+            catch (ObjectDisposedException)
+            {
+                return new byte[0];
+            }
         }
 
         private void DebugDump(byte[] dataPacket, Dictionary<uint, DataElement> data)
