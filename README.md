@@ -1,6 +1,25 @@
 # Fallout4-PipBoy
 Library to use the TCP communication mechanism/protocol from PipBoy Android/iOS app with .NET
 
+### [WIP] Sending commands
+
+**Toggle radio station:**
+```csharp
+    // ...
+    var commandSender = new CommandSender(stream);      // get stream from network or file
+    commandSender.Send(new Command(CommandType.ToggleRadio, id));
+    // ...
+```
+
+**Toggle quest:**
+```csharp
+    // ...
+    var commandSender = new CommandSender(stream);      // get stream from network or file
+    commandSender.Send(new Command(                     // get quest object from GameStateReader
+                        CommandType.ToggleQuest, (uint)quest.formID, (uint)quest.instance, (uint)quest.type));
+    // ...
+```
+
 ### Library usage
 
 The game state can be tracked with the `GameStateReader` class and accessed via a dynamic object:
