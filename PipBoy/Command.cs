@@ -7,6 +7,7 @@ namespace PipBoy
 {
     public enum CommandType
     {
+        // TODO: use/drop item, toggle favourite, set/remove marker, fast travel, ...?
         ToggleQuest = 5,
         ToggleRadio = 12
     }
